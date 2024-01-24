@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+import ImportMain
+from UserAgent import UserAgent as UA
+from Player import Player
+from Players.FullyRandomPlayer import FullyRandomPlayer as FRP
+from Players.CLIPlayer import CLIPlayer as CLIP
+from Players.AlwaysCallPlayer import AlwaysCallPlayer as ACP
+from CLISpecUserAgent import CLISpecUserAgent as CLIUA
+from TexasHoldEmGame import TexasHoldEmGame as Game
+from Players.SimpleAIPlayer import SimpleAIPlayer as AIP
+from PlayLikeMeAI import PlayLikeMeAI
+
+inp = None
+while inp is None:
+    print()
+    inp = input('enter your name: ')
+    if len(inp) > 10 or len(inp) < 2:
+        print('not more than 10 or less than 2 characters, please')
+        inp = None
+
+game = Game()
+game.shortSleep = 0.5
+game.longSleep = 2
+#player = CLIP(inp)
+player = AIP('Yolanda')
+game.playersNeeded = [player]
+game.addPlayer(player)
+game.addPlayer(AIP('Bernadette'))
+game.addPlayer(AIP('Alex'))
+game.addPlayer(AIP('Jill'))
+game.addPlayer(AIP('Peter'))
+game.addPlayer(AIP('Kaori'))
+game.addPlayer(AIP('Miguel'))
+
+# ai = PlayLikeMeAI(inp, idol=player)
+# game.addSpectator(ai)
+ai = PlayLikeMeAI(inp)
+game.addPlayer(ai)
+
+wins = game.runGame()
+
+for pl, win in wins.items():
+    print(pl.name+' wins '+str(win))
