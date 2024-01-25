@@ -5,6 +5,12 @@ from tensorflow.keras.layers import Input, Flatten, Concatenate, Dense, Dropout
 def setupNewModel(printModel: bool) -> tf.keras.Model:
     """
     Creates a new model
+
+    printModel:
+    Call the method summary() for the model.
+
+    return:
+    A new, untrained model.
     """
     # inputs:
     # suit of pocket card:      4 (one hot) per card
@@ -19,9 +25,11 @@ def setupNewModel(printModel: bool) -> tf.keras.Model:
     #
     # pot size:                 1 (numeric)
     # current bet:              1 (numeric)
+    # small blind:              1 (numeric)
+    # big blind:                1 (numeric)
     # suit of community card:   4 (one hot) per card
     # value of community card: 13 (one hot) per card
-    # sums up to a total of 70 inputs
+    # sums up to a total of 72 inputs
 
     playerInput = Input(shape=(10, 40))
     flattedPlayerInput = Flatten()(playerInput)
