@@ -10,11 +10,9 @@ import CardUtils as CA
 # array offsets of player specific values
 # TODO: deck agnostic
 _POCKET_BEGIN = 0
-_SUIT_1_OFFSET = _POCKET_BEGIN
-_VALUE_1_OFFSET = _SUIT_1_OFFSET + 4
-_SUIT_2_OFFSET = _VALUE_1_OFFSET + 13
-_VALUE_2_OFFSET = _SUIT_2_OFFSET + 4
-_POCKET_END = _VALUE_2_OFFSET + 13
+_POCKET_SUIT_OFFSETS = [k*17 + _POCKET_BEGIN for k in range(2)]
+_POCKET_VALUE_OFFSETS = [off+4 for off in _POCKET_SUIT_OFFSETS]
+_POCKET_END = _POCKET_VALUE_OFFSETS[len(_POCKET_VALUE_OFFSETS)-1] + 13
 _STACK_OFFSET = _POCKET_END
 _BET_OFFSET = _STACK_OFFSET + 1
 _SEATS_AHEAD_OFFSET = _BET_OFFSET + 1
@@ -27,6 +25,11 @@ _POT_SIZE_OFFSET = 0
 _CUR_BET_OFFSET = _POT_SIZE_OFFSET + 1
 _SMALL_BLIND_OFFSET = _CUR_BET_OFFSET + 1
 _BIG_BLIND_OFFSET = _SMALL_BLIND_OFFSET + 1
+_COM_SUIT_OFFSETS = [k*17+_BIG_BLIND_OFFSET+1 for k in range(5)]
+_COM_VALUE_OFFSETS = [off+4 for off in _COM_SUIT_OFFSETS]
+
+# number of community inputs
+_NUM_COM_INPUTS = _COM_VALUE_OFFSETS[len(_COM_VALUE_OFFSETS)-1] + 12
 
 _MAX_PLAYERS = 10
 
@@ -75,7 +78,7 @@ class PlayLikeMeAI(Player):
             self._model = Model.setupNewModel(printModel)
 
         self._playerInput = np.zeros((_MAX_PLAYERS, 40), dtype=np.float_)
-        self._comInput = np.zeros(70, dtype=np.float_)
+        self._comInput = np.zeros(_NUM_COM_INPUTS, dtype=np.float_)
 
     # _______________ utility functions _______________
 
@@ -97,11 +100,12 @@ class PlayLikeMeAI(Player):
         self._players = players
         super().setPlayers(players)
         if self._idol is None:
-            _myIndex = players.index(self)
+            self._myIndex = players.index(self)
         else:
-            _myIndex = players.index(self._idol)
+            self._myIndex = players.index(self._idol)
 
-        ahead = makeIndexCounterArray(_myIndex, len(players), _MAX_PLAYERS)
+        ahead = makeIndexCounterArray(
+            self._myIndex, len(players), _MAX_PLAYERS)
         self._playerInput[:, _SEATS_AHEAD_OFFSET] = ahead
         self._playerInput[0:len(players), _SLOT_USED_OFFSET] = 1
 
@@ -123,19 +127,28 @@ class PlayLikeMeAI(Player):
         self._playerInput[:, _POCKET_BEGIN:_POCKET_END] = 0
         # set all players as active
         self._playerInput[0:len(self._players), _ACTIVE_OFFSET] = 1
+        # clear community values, values of sb and bb are set again every hand, so we can zero them, too.
+        self._comInput[:] = 0
 
     def notifyCommunityCards(self, cards: List[int]):
-        val1 = CA.getCardValue(cards[0])
-        suit1 = CA.getCardSuit(cards[0])
-        val2 = CA.getCardValue(cards[1])
-        suit2 = CA.getCardSuit(cards[1])
-        self._playerInput[self._myIndex, _VALUE_1_OFFSET+val1] = 1
-        self._playerInput[self._myIndex, _SUIT_1_OFFSET+suit1] = 1
-        self._playerInput[self._myIndex, _VALUE_2_OFFSET+val2] = 1
-        self._playerInput[self._myIndex, _SUIT_2_OFFSET+suit2] = 1
+        for idx in range(len(cards)):
+            card = cards[idx]
+            suit = CA.getCardSuit(card)
+            value = CA.getCardValue(card)
+            self._comInput[_COM_SUIT_OFFSETS[idx]+suit] = 1
+            self._comInput[_COM_VALUE_OFFSETS[idx]+value] = 1
 
-    # def notifyCardDealing(self, player):
-    #     pass
+    def notifyCardDealing(self, player):
+        if (self._idol is not None and self._idol == player) or player == self:
+            cards = self.getPocketCards()
+            for idx in range(len(cards)):
+                card = cards[idx]
+                suit = CA.getCardSuit(card)
+                value = CA.getCardValue(card)
+                self._pocketInput[self._my_index,
+                                  _POCKET_SUIT_OFFSETS[idx]+suit] = 1
+                self._pocketInput[self._my_index,
+                                  _POCKET_VALUE_OFFSETS[idx]+value] = 1
 
     def notifySmallBlind(self, player):
         self._comInput[_SMALL_BLIND_OFFSET] = player.bet
