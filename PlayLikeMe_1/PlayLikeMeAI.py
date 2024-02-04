@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import List
 import CardUtils as CA
+from copy import copy
 
 # array offsets of player specific values
 # TODO: deck agnostic
@@ -42,8 +43,10 @@ def makeIndexCounterArray(refIdx: int, slots: int, length: int, inc: bool = Fals
     The 0 becomes placed at the index 'refIdx'. If this is not the last index,
     the next index will have the value 'slots' (or 1, respectively).
     Afterwards, the list is extended with -1 until it has a length og 'length'.
+
     refIdx:
     Index that will have the value of 0.
+
     inc (default: False):
     Increase rather than decrease the values with increasing indices.
     """
@@ -97,7 +100,7 @@ class PlayLikeMeAI(Player):
     # _______________ start a game _______________
 
     def setPlayers(self, players):
-        self._players = players
+        self._players = copy(players)
         super().setPlayers(players)
         if self._idol is None:
             self._myIndex = players.index(self)
@@ -180,8 +183,24 @@ class PlayLikeMeAI(Player):
     # def notifyShowdown(self):
     #     pass
 
-    # def notifyElimination(self, player):
-    #     pass
+    def notifyElimination(self, player):
+        idx = self._players.index(player)
+        # shift following players one row up
+        numPlr = len(self._players)
+        if idx < numPlr - 1:
+            oldIdx = np.arange(idx+1, numPlr)
+            newIdx = oldIdx - 1
+            self._playerInput[newIdx] = self._playerInput[oldIdx]
+        if self._myIndex > idx:
+            self._myIndex -= 1
+        # clear row, especially _ACTIVE_OFFSET and _SLOT_USED_OFFSET
+        self._playerInput[numPlr-1, :] = 0
+        # good bye, player
+        del self._players[idx]
+        # recompute ahead
+        ahead = makeIndexCounterArray(
+            self._myIndex, len(self._players), _MAX_PLAYERS)
+        self._playerInput[:, _SEATS_AHEAD_OFFSET] = ahead
 
     # def notifyEndOfHand(self):
     #     pass
