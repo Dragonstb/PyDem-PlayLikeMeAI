@@ -143,15 +143,16 @@ class PlayLikeMeAI(Player):
 
     def notifyCardDealing(self, player):
         if (self._idol is not None and self._idol == player) or player == self:
-            cards = self.getPocketCards()
-            for idx in range(len(cards)):
-                card = cards[idx]
-                suit = CA.getCardSuit(card)
-                value = CA.getCardValue(card)
-                self._pocketInput[self._my_index,
-                                  _POCKET_SUIT_OFFSETS[idx]+suit] = 1
-                self._pocketInput[self._my_index,
-                                  _POCKET_VALUE_OFFSETS[idx]+value] = 1
+            self.setSomeonePockets(player)
+            # cards = player.getPocketCards()
+            # for idx in range(len(cards)):
+            #     card = cards[idx]
+            #     suit = CA.getCardSuit(card)
+            #     value = CA.getCardValue(card)
+            #     self._pocketInput[self._my_index,
+            #                       _POCKET_SUIT_OFFSETS[idx]+suit] = 1
+            #     self._pocketInput[self._my_index,
+            #                       _POCKET_VALUE_OFFSETS[idx]+value] = 1
 
     def notifySmallBlind(self, player):
         self._comInput[_SMALL_BLIND_OFFSET] = player.bet
@@ -205,11 +206,28 @@ class PlayLikeMeAI(Player):
     # def notifyEndOfHand(self):
     #     pass
 
-    # def revealAllCards(self, player):
-    #     pass
+    def revealAllCards(self, player):
+        self.setSomeonePockets(player)
 
-    # _______________ other _______________
+    # _______________ utilityies new to PlayLikeMe_1.PlayLikeMeAI _______________
 
-    # def debug(self):
-    #     print(self.name)
-    #     [cd.debug('  ') for pl, cd in self.comps.items()]
+    def setSomeonePockets(self, player):
+        """
+        Sets the one hot input neurons of the player's pocket cards. Simply returns
+        in case 'player' is not listed by 'self'.
+
+        player:
+        Player whose cards become revealed th 'self'
+        """
+        cards = player.getPocketCards()
+        try:
+            plrIdx = self._players.index(player)
+        except ValueError:
+            return
+
+        for idx in range(len(cards)):
+            card = cards[idx]
+            suit = CA.getCardSuit(card)
+            value = CA.getCardValue(card)
+            self._playerInput[plrIdx, _POCKET_SUIT_OFFSETS[idx]+suit] = 1
+            self._playerInput[plrIdx, _POCKET_VALUE_OFFSETS[idx]+value] = 1

@@ -196,3 +196,53 @@ class UnitTest_PlayLikeMeAI(UT.TestCase):
         self.assertNotIn(delPlayer, ai._players, "elimnated player still list")
 
         self.assertEqual(idolIdx-1, ai._myIndex, "Idol at unexpected index")
+
+    def test_revealAllCards_twoCards(self):
+        names = ['Alice', 'Bob', 'Clara', 'Dylan', 'Eve', 'Freddy']
+        players = [Player(name) for name in names]
+        sampleIdx = 3
+        sample = players[sampleIdx]
+        # set my idol
+        idolIdx = 4
+        idol = players[idolIdx]
+        ai = AIP('Zoe', idol=idol)
+        ai.setPlayers(players)
+        # set some well defined values
+        ai._playerInput[:] = 0
+        # hand out pocket cards to sample
+        sample.pockets = [21, 33]
+
+        ai.revealAllCards(sample)
+        hots = np.sum(ai._playerInput[:len(
+            players), AI._POCKET_BEGIN:AI._POCKET_END], axis=1)
+        expect = np.zeros(len(players))
+        # two cards, each contributing unity for the suit and unity for the value
+        expect[sampleIdx] = 4
+        for idx in range(len(players)):
+            self.assertEqual(
+                expect[idx], hots[idx], "Wrong number of one hot neurons being unity at index "+str(idx))
+
+    def test_revealAllCards_oneCard(self):
+        names = ['Alice', 'Bob', 'Clara', 'Dylan', 'Eve', 'Freddy']
+        players = [Player(name) for name in names]
+        sampleIdx = 3
+        sample = players[sampleIdx]
+        # set my idol
+        idolIdx = 4
+        idol = players[idolIdx]
+        ai = AIP('Zoe', idol=idol)
+        ai.setPlayers(players)
+        # set some well defined values
+        ai._playerInput[:] = 0
+        # hand out pocket cards to sample
+        sample.pockets = [9]
+
+        ai.revealAllCards(sample)
+        hots = np.sum(ai._playerInput[:len(
+            players), AI._POCKET_BEGIN:AI._POCKET_END], axis=1)
+        expect = np.zeros(len(players))
+        # one card contributing unity for the suit and unity for the value
+        expect[sampleIdx] = 2
+        for idx in range(len(players)):
+            self.assertEqual(
+                expect[idx], hots[idx], "Wrong number of one hot neurons being unity at index "+str(idx))
